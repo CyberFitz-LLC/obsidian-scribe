@@ -32,9 +32,12 @@ Obsidian Scribe is an Obsidian plugin that transforms voice notes into structure
 **AI & Transcription:**
 - `openai` (^4.85.4) - OpenAI API client for Whisper transcription and ChatGPT summarization
 - `@langchain/openai` (^0.5.10) - Structured output generation with Zod schemas
+- `@langchain/anthropic` (^0.4.3) - Claude API integration for LLM summarization
+- `@langchain/ollama` (^0.2.4) - Local Ollama LLM integration
 - `@langchain/core` (^0.3.40) - LangChain core abstractions
 - `assemblyai` (^4.9.0) - Alternative transcription service with speaker diarization
 - `langchain` (^0.3.19) - Language model orchestration
+- `form-data` (^4.0.1) - FormData implementation for Whisper-ASR API calls
 
 **Audio Processing:**
 - `@ffmpeg/ffmpeg` (^0.12.15) - WebM to MP3 conversion (client-side)
@@ -430,10 +433,404 @@ npm version patch  # or minor/major
 12. **`src/util/mimeType.ts`** - Supported formats
 13. **`src/util/audioDataToChunkedFiles.ts`** - Audio processing details
 14. **`src/util/assemblyAiUtil.ts`** - Alternative transcription
+15. **`src/util/whisperAsrUtil.ts`** - Local Whisper-ASR transcription
+16. **`src/util/ollamaUtils.ts`** - Local Ollama LLM integration
+17. **`src/util/claudeUtils.ts`** - Claude API integration
 
 ---
 
-## 8. Dependencies & Integration Points
+## 8. AI Provider Architecture
+
+### Overview
+
+Obsidian Scribe supports multiple AI providers for both transcription and summarization, giving users flexibility to choose between cloud-based paid services and self-hosted free alternatives. This multi-provider architecture enables privacy-focused workflows, cost optimization, and offline capability.
+
+### Transcription Providers
+
+**Provider Selection (Enum-Based):**
+```typescript
+enum TRANSCRIPT_PLATFORM {
+  openAi = 'openAi',        // Cloud, paid API
+  assemblyAi = 'assemblyAi', // Cloud, paid API
+  whisperAsr = 'whisperAsr'  // Self-hosted, free
+}
+```
+
+**1. OpenAI Whisper (Cloud)**
+- **Type:** Cloud-based paid API
+- **API Endpoint:** `https://api.openai.com/v1/audio/transcriptions`
+- **Model:** `whisper-1`
+- **Features:**
+  - High accuracy transcription
+  - Multi-language support (auto-detect or explicit)
+  - Custom base URL support (Azure OpenAI, local proxies)
+- **File Size Limit:** 25MB (handled via chunking in `audioDataToChunkedFiles.ts`)
+- **Implementation:** `src/util/openAiUtils.ts` - `chunkAndTranscribeWithOpenAi()`
+- **Requirements:** OpenAI API key
+
+**2. AssemblyAI (Cloud)**
+- **Type:** Cloud-based paid API
+- **API Endpoint:** Built into AssemblyAI SDK
+- **Features:**
+  - Speaker diarization (multi-speaker identification)
+  - Paragraph formatting
+  - Language auto-detection
+  - Higher accuracy for certain use cases
+- **Implementation:** `src/util/assemblyAiUtil.ts` - `transcribeAudioWithAssemblyAi()`
+- **Requirements:** AssemblyAI API key
+- **Use Cases:** Meeting recordings, interviews, multi-speaker content
+
+**3. Whisper-ASR (Self-Hosted)**
+- **Type:** Self-hosted, free, privacy-focused
+- **API Endpoint:** `POST {baseUrl}/asr`
+- **Default Base URL:** `http://localhost:9000`
+- **Docker Image:** `onerahmet/openai-whisper-asr-webservice:latest-gpu`
+- **Implementation:** `src/util/whisperAsrUtil.ts` - `transcribeAudioWithWhisperAsr()`
+
+**Request Format:**
+```typescript
+// FormData with audio file + query parameters
+const formData = new FormData();
+formData.append('audio_file', audioBlob, 'recording.webm');
+
+const params = new URLSearchParams({
+  output: 'json',
+  task: 'transcribe',
+  encode: 'true',
+  language: 'en' // optional, omit for auto-detect
+});
+
+const url = `${baseUrl}/asr?${params.toString()}`;
+```
+
+**Response Format:**
+```typescript
+interface WhisperAsrResponse {
+  text: string;           // Full transcribed text
+  segments: Array<{
+    id: number;
+    start: number;        // Start time in seconds
+    end: number;          // End time in seconds
+    text: string;         // Segment text
+  }>;
+  language: string;       // Detected language
+}
+```
+
+**Error Handling Patterns:**
+- **Connection Error (ECONNREFUSED):** Server not running
+  - Helpful message: "Is Docker running? Start with: docker run..."
+- **413 Entity Too Large:** Audio file exceeds server limit
+  - Note: No chunking implemented for Whisper-ASR (unlike OpenAI)
+- **500 Internal Server Error:** Model loading or processing failure
+  - Check Docker container logs: `docker logs whisper-asr-gpu`
+
+**Docker Deployment:**
+```bash
+# Basic deployment (CPU)
+docker run -d -p 9000:9000 onerahmet/openai-whisper-asr-webservice:latest
+
+# GPU deployment (recommended for performance)
+docker run -d -p 9000:9000 --gpus all \
+  onerahmet/openai-whisper-asr-webservice:latest-gpu
+```
+
+**See Also:** `docs/whisper-asr-stack.yml`, `docs/WHISPER_ASR_TROUBLESHOOTING.md`, `LOCAL_SETUP.md`
+
+### LLM Providers (Summarization)
+
+**Provider Selection (Enum-Based):**
+```typescript
+enum LLM_PROVIDER {
+  openai = 'openai',  // Cloud, paid API
+  ollama = 'ollama',  // Self-hosted, free
+  claude = 'claude'   // Cloud, paid API (Anthropic)
+}
+```
+
+**1. OpenAI (Cloud)**
+- **Type:** Cloud-based paid API
+- **Models:** GPT-4.1, GPT-4o, GPT-4-turbo (configurable)
+- **Implementation:** `src/util/openAiUtils.ts` - `summarizeTranscript()`
+- **LangChain Integration:** `@langchain/openai`
+- **Structured Output:** `ChatOpenAI.withStructuredOutput(zodSchema, { name: 'summarize_transcript' })`
+- **Temperature:** 0.5 (balanced creativity/consistency)
+- **Requirements:** OpenAI API key
+- **Custom Endpoints:** Supports custom base URLs for Azure OpenAI, Gemini-compatible endpoints
+
+**2. Ollama (Self-Hosted)**
+- **Type:** Self-hosted, free, privacy-focused
+- **Default Base URL:** `http://localhost:11434`
+- **Implementation:** `src/util/ollamaUtils.ts` - `summarizeTranscriptWithOllama()`
+- **LangChain Integration:** `@langchain/ollama`
+
+**Model Compatibility:**
+- **Recommended Models:**
+  - `llama3.1:8b` - Best balance of quality and speed
+  - `qwen2.5:14b` - Higher quality, slower
+  - `mistral:7b` - Faster, good for shorter transcripts
+  - `deepseek-r1:8b` - Reasoning-focused
+- **Requirements:** Model must support structured output (function calling)
+- **Installation:** `ollama pull llama3.1:8b`
+
+**Structured Output Implementation:**
+```typescript
+const llm = new ChatOllama({
+  model: 'llama3.1:8b',
+  baseUrl: 'http://localhost:11434',
+  temperature: 0  // Deterministic for structured output
+});
+
+// Same Zod schema pattern as OpenAI
+const schema = z.object({
+  fileTitle: z.string(),
+  summary: z.string(),
+  insights: z.string(),
+  // ... dynamic fields from template
+});
+
+const structuredLlm = llm.withStructuredOutput(schema);
+const result = await structuredLlm.invoke(messages);
+```
+
+**Response Handling (Robust):**
+- **String Responses:** Some models return text instead of JSON
+  - Auto-extraction: Regex search for JSON object `\{[\s\S]*\}`
+  - Fallback parsing from LangChain error messages
+- **Wrapped Responses:** Some models wrap output in `{parameters: {...}}` or `{arguments: {...}}`
+  - Auto-unwrapping logic in `ollamaUtils.ts`
+- **Field Validation:** All template fields get default empty strings if missing
+- **Error Messages:** Helpful guidance for common issues
+  - "Model not found" → `ollama pull <model>`
+  - "Does not support tools" → Suggest compatible models
+  - Connection errors → Check if server is running
+
+**Local Server Requirements:**
+```bash
+# Install Ollama
+curl https://ollama.ai/install.sh | sh
+
+# Start server (runs on port 11434 by default)
+ollama serve
+
+# Pull a compatible model
+ollama pull llama3.1:8b
+```
+
+**3. Claude (Anthropic)**
+- **Type:** Cloud-based paid API
+- **Implementation:** `src/util/claudeUtils.ts` - `summarizeTranscriptWithClaude()`
+- **LangChain Integration:** `@langchain/anthropic`
+
+**Model Options:**
+```typescript
+enum CLAUDE_MODELS {
+  'claude-sonnet-4-5' = 'claude-sonnet-4-5-20250929',   // Recommended balance
+  'claude-haiku-4-5' = 'claude-haiku-4-5-20251001',     // Fastest, most cost-effective
+  'claude-opus-4-1' = 'claude-opus-4-1-20250805'        // Highest quality, most expensive
+}
+```
+
+**Structured Output Implementation:**
+```typescript
+const llm = new ChatAnthropic({
+  model: 'claude-sonnet-4-5-20250929',
+  apiKey: apiKey,
+  temperature: 0.5  // Matches OpenAI for consistency
+});
+
+// Same Zod schema pattern as OpenAI/Ollama
+const structuredLlm = llm.withStructuredOutput(zodSchema, {
+  name: 'summarize_transcript'
+});
+
+const result = await structuredLlm.invoke(messages);
+```
+
+**Error Handling:**
+- **401 Authentication:** Invalid API key
+  - Link to console: `https://console.anthropic.com/settings/keys`
+- **429 Rate Limit:** Too many requests
+  - Helpful message: "Please wait a moment and try again"
+- **500/529 Server Error:** Claude API temporarily unavailable
+- **Context Length Error:** Transcript too long for model
+  - Suggestion: "Try recording a shorter audio clip"
+
+**API Key Configuration:**
+- **Where to Get:** `https://console.anthropic.com/`
+- **Key Format:** `sk-ant-...`
+- **Storage:** Encrypted in Obsidian's plugin data (same as OpenAI key)
+
+### Shared Components
+
+**Zod Schema Generation (Dynamic):**
+All three LLM providers use the same dynamic Zod schema generation from template sections:
+
+```typescript
+// Build schema from user's template
+const schema: Record<string, z.ZodType<string | null | undefined>> = {
+  fileTitle: z.string().describe('A suggested title for the Obsidian Note...'),
+};
+
+activeNoteTemplate.sections.forEach((section) => {
+  const key = convertToSafeJsonKey(section.sectionHeader);
+  schema[key] = section.isSectionOptional
+    ? z.string().nullish().describe(section.sectionInstructions)
+    : z.string().describe(section.sectionInstructions);
+});
+
+const structuredOutput = z.object(schema);
+```
+
+**System Prompt (Consistent):**
+All providers use the same "Scribe" persona and Linking Your Thinking (LYK) strategy instructions. See `ollamaUtils.ts`, `claudeUtils.ts`, `openAiUtils.ts` for full prompt.
+
+**Language Support:**
+All providers support custom output languages via additional system message:
+```typescript
+if (scribeOutputLanguage) {
+  messages.push(
+    new SystemMessage(`Please respond in ${scribeOutputLanguage} language`)
+  );
+}
+```
+
+### Provider Selection Flow
+
+**In Plugin Code (`src/index.ts`):**
+```typescript
+// Transcription provider selection
+if (settings.transcriptPlatform === TRANSCRIPT_PLATFORM.assemblyAi) {
+  transcript = await transcribeAudioWithAssemblyAi(...);
+} else if (settings.transcriptPlatform === TRANSCRIPT_PLATFORM.whisperAsr) {
+  const { transcribeAudioWithWhisperAsr } = await import('./util/whisperAsrUtil');
+  transcript = await transcribeAudioWithWhisperAsr(...);
+} else {
+  transcript = await chunkAndTranscribeWithOpenAi(...);
+}
+
+// LLM provider selection
+if (settings.llmProvider === LLM_PROVIDER.ollama) {
+  const { summarizeTranscriptWithOllama } = await import('./util/ollamaUtils');
+  summary = await summarizeTranscriptWithOllama(...);
+} else if (settings.llmProvider === LLM_PROVIDER.claude) {
+  const { summarizeTranscriptWithClaude } = await import('./util/claudeUtils');
+  summary = await summarizeTranscriptWithClaude(...);
+} else {
+  summary = await summarizeTranscript(...); // OpenAI
+}
+```
+
+**Dynamic Imports:**
+Whisper-ASR, Ollama, and Claude utilities use dynamic imports to reduce bundle size when not in use.
+
+### File Modifications Map
+
+**New Files for Local AI Features:**
+- `src/util/whisperAsrUtil.ts` - Whisper-ASR transcription client
+  - `transcribeAudioWithWhisperAsr()` - Main function
+  - `transcribeWithDiarization()` - Future speaker diarization support
+- `src/util/ollamaUtils.ts` - Ollama LLM integration
+  - `summarizeTranscriptWithOllama()` - Structured output with robust error handling
+- `src/util/claudeUtils.ts` - Claude API integration
+  - `summarizeTranscriptWithClaude()` - Anthropic-specific implementation
+
+**Modified Files:**
+- `src/settings/settings.tsx` - Added provider enums and settings
+  - `TRANSCRIPT_PLATFORM` enum - Added `whisperAsr`
+  - `LLM_PROVIDER` enum - New enum for LLM selection
+  - `CLAUDE_MODELS` enum - Claude model options
+  - `ScribePluginSettings` interface - Added `whisperAsrBaseUrl`, `llmProvider`, `ollamaBaseUrl`, `ollamaModel`, `claudeApiKey`, `claudeModel`
+  - `DEFAULT_SETTINGS` - Defaults for new providers
+- `src/settings/components/AiModelSettings.tsx` - UI for provider selection
+  - Transcription platform dropdown - Added Whisper-ASR option
+  - LLM provider dropdown - New section with OpenAI/Ollama/Claude
+  - Conditional settings sections - Show provider-specific fields
+  - Base URL inputs - Whisper-ASR and Ollama server configuration
+  - Model selection - Claude model dropdown, Ollama text input
+  - API key fields - Claude API key (password-protected input)
+- `src/index.ts` - Main plugin logic updated
+  - `handleTranscription()` - Added Whisper-ASR branch
+  - `handleTranscriptSummary()` - Added Ollama and Claude branches
+  - Dynamic imports for new utilities
+
+**Key Functions:**
+- **Transcription:**
+  - `transcribeAudioWithWhisperAsr(baseUrl, audioBuffer, options)` - POST to `/asr` endpoint
+  - `chunkAndTranscribeWithOpenAi(...)` - Existing OpenAI Whisper
+  - `transcribeAudioWithAssemblyAi(...)` - Existing AssemblyAI
+- **Summarization:**
+  - `summarizeTranscriptWithOllama(baseUrl, model, transcript, options)` - Local LLM
+  - `summarizeTranscriptWithClaude(apiKey, model, transcript, options)` - Anthropic API
+  - `summarizeTranscript(...)` - Existing OpenAI GPT
+
+### Privacy & Cost Considerations
+
+**Fully Local (Zero Cost, Maximum Privacy):**
+- Transcription: Whisper-ASR (self-hosted Docker)
+- Summarization: Ollama (self-hosted local LLM)
+- Total Cost: $0/month + hardware electricity
+- Privacy: Audio never leaves your local network
+- Internet: Not required (can work fully offline)
+
+**Hybrid (Privacy-Focused Transcription):**
+- Transcription: Whisper-ASR (self-hosted)
+- Summarization: OpenAI GPT-4o or Claude Sonnet
+- Cost: Only LLM API costs (no transcription costs)
+- Privacy: Audio stays local, only text sent to cloud
+
+**Cloud-Based (Maximum Convenience):**
+- Transcription: OpenAI Whisper or AssemblyAI
+- Summarization: OpenAI GPT-4o or Claude
+- Cost: Pay for both transcription and summarization
+- Privacy: Audio and text sent to cloud providers
+
+### Extending with New Providers
+
+**Adding a New Transcription Provider:**
+1. Add enum value to `TRANSCRIPT_PLATFORM` in `settings.tsx`
+2. Create utility file in `src/util/` (e.g., `deepgramUtil.ts`)
+3. Implement function matching signature: `(apiKey: string, audioBuffer: ArrayBuffer, options) => Promise<string>`
+4. Add conditional import in `src/index.ts` `handleTranscription()`
+5. Add UI option in `AiModelSettings.tsx` dropdown
+6. Add provider-specific settings (API key, base URL, etc.)
+
+**Adding a New LLM Provider:**
+1. Add enum value to `LLM_PROVIDER` in `settings.tsx`
+2. Create utility file in `src/util/` (e.g., `geminiUtils.ts`)
+3. Implement LangChain integration with `withStructuredOutput(zodSchema)`
+4. Match function signature: `(config, transcript, options) => Promise<Record<string, string> & { fileTitle: string }>`
+5. Add conditional import in `src/index.ts` `handleTranscriptSummary()`
+6. Add UI section in `AiModelSettings.tsx` with provider-specific fields
+7. Handle provider-specific error messages
+
+**Example: Adding Gemini:**
+```typescript
+// src/util/geminiUtils.ts
+import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
+
+export async function summarizeTranscriptWithGemini(
+  apiKey: string,
+  model: string,
+  transcript: string,
+  { scribeOutputLanguage, activeNoteTemplate }: ScribeOptions
+) {
+  const llm = new ChatGoogleGenerativeAI({
+    model: model,
+    apiKey: apiKey,
+    temperature: 0.5
+  });
+
+  // Same Zod schema logic as other providers...
+  const structuredLlm = llm.withStructuredOutput(structuredOutput);
+  const result = await structuredLlm.invoke(messages);
+  return result;
+}
+```
+
+---
+
+## 9. Dependencies & Integration Points
 
 ### External Libraries & Their Roles
 
@@ -504,7 +901,7 @@ new Notice('Message')  // User feedback for all operations
 
 ---
 
-## 9. Modification Guidelines
+## 10. Modification Guidelines
 
 ### Areas That Are Extensible
 
@@ -538,14 +935,18 @@ const MEETING_NOTES_TEMPLATE: ScribeTemplate = {
 }
 ```
 
-**2. AI Model Integration (Moderate Extensibility)**
-- **Location:** `src/util/openAiUtils.ts`, `src/settings/components/AiModelSettings.tsx`
-- **Pattern:** Add new LLM providers using OpenAI-compatible endpoints
-- **Current Support:** Custom base URLs for Gemini, local models
+**2. AI Provider Integration (Highly Extensible)**
+- **Location:** `src/util/` (provider-specific utils), `src/settings/components/AiModelSettings.tsx`
+- **Pattern:** Multi-provider architecture with dynamic imports
+- **Current Providers:**
+  - Transcription: OpenAI Whisper, AssemblyAI, Whisper-ASR (local)
+  - LLM: OpenAI GPT, Claude (Anthropic), Ollama (local)
 - **Extension Points:**
-  - Add new `LLM_MODELS` enum values
-  - Update `summarizeTranscript()` model selection
-  - Add provider-specific settings
+  - Add new transcription providers (see Section 8: "Extending with New Providers")
+  - Add new LLM providers with LangChain integration
+  - Implement hybrid workflows (local transcription + cloud summarization)
+  - Add provider-specific features (speaker diarization, custom models)
+- **Example:** See Section 8 for complete Gemini integration example
 
 **3. Commands & Shortcuts (Easy Extension)**
 - **Location:** `src/commands/commands.ts`
@@ -670,7 +1071,7 @@ this.registerEvent(
 
 ---
 
-## 10. Architecture Insights
+## 11. Architecture Insights
 
 ### Design Patterns Used
 
@@ -797,7 +1198,7 @@ appendTextToNote(note, summary)  // Append
 
 ---
 
-## 11. Recent Changes & Git Context
+## 12. Recent Changes & Git Context
 
 **Latest Commits:**
 ```
@@ -827,7 +1228,7 @@ M package.json
 
 ---
 
-## 12. Extension Ideas & Future Directions
+## 13. Extension Ideas & Future Directions
 
 ### Low-Hanging Fruit
 
@@ -898,7 +1299,7 @@ M package.json
 
 ---
 
-## 13. Testing Strategy (Current & Recommended)
+## 14. Testing Strategy (Current & Recommended)
 
 ### Current Testing
 
@@ -954,7 +1355,7 @@ export function createTestPlugin(): ScribePlugin
 
 ---
 
-## 14. Quick Reference
+## 15. Quick Reference
 
 ### Common Modification Scenarios
 
@@ -1015,7 +1416,7 @@ export function createTestPlugin(): ScribePlugin
 
 ---
 
-## 15. Conclusion
+## 16. Conclusion
 
 ### Project Strengths
 
