@@ -157,6 +157,55 @@ export async function summarizeTranscriptWithOllama(
 
     return validatedResult;
   } catch (error) {
+    // Try to extract JSON from parsing errors
+    if (error.message?.includes('Failed to parse') && error.message?.includes('Text:')) {
+      console.log('Attempting to extract JSON from parsing error...');
+
+      // Extract the text from the error message
+      const textMatch = error.message.match(/Text: "(.+?)"\. Error:/s);
+      if (textMatch && textMatch[1]) {
+        const responseText = textMatch[1];
+
+        // Try to find JSON in the response text
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          try {
+            const extracted = JSON.parse(jsonMatch[0]);
+            console.log('Successfully extracted JSON from error message');
+
+            // Process the extracted JSON through the same validation logic
+            let result = extracted;
+            if (extracted.parameters) {
+              result = extracted.parameters;
+            } else if (extracted.arguments) {
+              result = extracted.arguments;
+            }
+
+            const validatedResult: Record<string, string> & { fileTitle: string } = {
+              ...result,
+              fileTitle: result.fileTitle || 'Untitled Note',
+            };
+
+            activeNoteTemplate.sections.forEach((section) => {
+              const key = convertToSafeJsonKey(section.sectionHeader);
+              if (!validatedResult[key]) {
+                validatedResult[key] = '';
+              }
+            });
+
+            console.log('Recovered from parsing error:', {
+              fileTitle: validatedResult.fileTitle,
+              fieldsCount: Object.keys(validatedResult).length,
+            });
+
+            return validatedResult;
+          } catch (parseError) {
+            console.error('Failed to parse extracted JSON:', parseError);
+          }
+        }
+      }
+    }
+
     // Provide helpful error messages for common Ollama issues
     if (error.message?.includes('ECONNREFUSED')) {
       throw new Error(
@@ -172,6 +221,10 @@ export async function summarizeTranscriptWithOllama(
     } else if (error.message?.includes('connection')) {
       throw new Error(
         `Connection error to Ollama at ${baseUrl}. Check if the server is running and accessible.`,
+      );
+    } else if (error.message?.includes('does not support tools')) {
+      throw new Error(
+        `Model "${model}" does not support structured output. Try: qwen3:8b, llama3.1:8b, or deepseek-r1:8b`,
       );
     } else {
       // Re-throw original error with additional context
