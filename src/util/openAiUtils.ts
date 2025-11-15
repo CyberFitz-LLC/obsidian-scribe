@@ -157,7 +157,9 @@ export async function summarizeTranscript(
   });
 
   const structuredOutput = z.object(schema);
-  const structuredLlm = model.withStructuredOutput(structuredOutput);
+  const structuredLlm = model.withStructuredOutput(structuredOutput as any, {
+    name: 'summarize_transcript',
+  });
   const result = (await structuredLlm.invoke(messages)) as Record<
     string,
     string
@@ -198,7 +200,9 @@ Thank you
     mermaidChart: z.string().describe('A fully valid unicode mermaid chart'),
   });
 
-  const structuredLlm = model.withStructuredOutput(structuredOutput);
+  const structuredLlm = model.withStructuredOutput(structuredOutput as any, {
+    name: 'fix_mermaid_chart',
+  });
   const { mermaidChart } = await structuredLlm.invoke(messages);
 
   return { mermaidChart };
