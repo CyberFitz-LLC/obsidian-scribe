@@ -464,20 +464,19 @@ export default class ScribePlugin extends Plugin {
   ) {
     new Notice('Scribe: 🧠 Sending to LLM to summarize');
 
-    const customBaseUrl = this.settings.useCustomOpenAiBaseUrl 
-      ? this.settings.customOpenAiBaseUrl 
-      : undefined;
-    const customChatModel = this.settings.useCustomOpenAiBaseUrl 
-      ? this.settings.customChatModel 
-      : undefined;
-
     const llmSummary = await summarizeTranscript(
-      this.settings.openAiApiKey,
       transcript,
       scribeOptions,
-      this.settings.llmModel,
-      customBaseUrl,
-      customChatModel,
+      {
+        llmProvider: this.settings.llmProvider,
+        openAiApiKey: this.settings.openAiApiKey,
+        llmModel: this.settings.llmModel,
+        ollamaBaseUrl: this.settings.ollamaBaseUrl,
+        ollamaModel: this.settings.ollamaModel,
+        useCustomOpenAiBaseUrl: this.settings.useCustomOpenAiBaseUrl,
+        customOpenAiBaseUrl: this.settings.customOpenAiBaseUrl,
+        customChatModel: this.settings.customChatModel,
+      },
     );
 
     new Notice('Scribe: 🧠 LLM summation complete');

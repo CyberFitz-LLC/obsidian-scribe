@@ -14,6 +14,7 @@ import { Notice } from 'obsidian';
 import type { ScribeOptions } from 'src';
 import { LanguageOptions } from './consts';
 import { convertToSafeJsonKey } from './textUtil';
+import { LLM_PROVIDER } from '../settings/settings';
 
 export enum LLM_MODELS {
   'gpt-4.1' = 'gpt-4.1',
@@ -92,7 +93,7 @@ async function transcribeAudio(
   return transcript;
 }
 
-export async function summarizeTranscript(
+export async function summarizeTranscriptWithOpenAI(
   openAiKey: string,
   transcript: string,
   { scribeOutputLanguage, activeNoteTemplate }: ScribeOptions,
@@ -166,6 +167,44 @@ export async function summarizeTranscript(
   > & { fileTitle: string };
 
   return await result;
+}
+
+export async function summarizeTranscript(
+  transcript: string,
+  scribeOptions: ScribeOptions,
+  settings: {
+    llmProvider: LLM_PROVIDER;
+    openAiApiKey: string;
+    llmModel: LLM_MODELS;
+    ollamaBaseUrl: string;
+    ollamaModel: string;
+    useCustomOpenAiBaseUrl: boolean;
+    customOpenAiBaseUrl: string;
+    customChatModel: string;
+  },
+) {
+  const { llmProvider } = settings;
+
+  if (llmProvider === LLM_PROVIDER.ollama) {
+    // Use Ollama
+    const { summarizeTranscriptWithOllama } = await import('./ollamaUtils');
+    return await summarizeTranscriptWithOllama(
+      settings.ollamaBaseUrl,
+      settings.ollamaModel,
+      transcript,
+      scribeOptions,
+    );
+  } else {
+    // Default: OpenAI
+    return await summarizeTranscriptWithOpenAI(
+      settings.openAiApiKey,
+      transcript,
+      scribeOptions,
+      settings.llmModel,
+      settings.useCustomOpenAiBaseUrl ? settings.customOpenAiBaseUrl : undefined,
+      settings.customChatModel,
+    );
+  }
 }
 
 export async function llmFixMermaidChart(
