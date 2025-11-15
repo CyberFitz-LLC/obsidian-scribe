@@ -53,12 +53,17 @@ services:
     # mem_reservation: 4g
 
     # Optional: Healthcheck to verify service is responsive
+    # Using Python (guaranteed to be available in this container)
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/docs"]
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9000/docs', timeout=5)"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
+
+    # Alternative: Comment out healthcheck if you don't need it
+    # healthcheck:
+    #   disable: true
 
 networks:
   default:
