@@ -1,5 +1,6 @@
 import type ScribePlugin from 'src';
 import { ScribeControlsModal } from 'src/modal/scribeControlsModal';
+import { AudioFilePickerModal } from '../modals/AudioFilePickerModal';
 
 export function handleCommands(plugin: ScribePlugin) {
   plugin.addCommand({
@@ -42,6 +43,14 @@ export function handleCommands(plugin: ScribePlugin) {
       if (activeFile) {
         plugin.fixMermaidChart(activeFile);
       }
+    },
+  });
+  plugin.addCommand({
+    id: 'scribe-select-audio-file',
+    name: 'Select and transcribe audio file',
+    callback: async () => {
+      const modal = new AudioFilePickerModal(plugin.app);
+      modal.open();
     },
   });
 }
