@@ -162,7 +162,8 @@ export async function summarizeTranscriptWithOllama(
       console.log('Attempting to extract JSON from parsing error...');
 
       // Extract the text from the error message
-      const textMatch = error.message.match(/Text: "(.+?)"\. Error:/s);
+      // Use [\s\S] instead of . with s flag for ES2017 compatibility
+      const textMatch = error.message.match(/Text: "([\s\S]+?)"\. Error:/);
       if (textMatch && textMatch[1]) {
         const responseText = textMatch[1];
 
