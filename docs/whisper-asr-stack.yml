@@ -52,18 +52,14 @@ services:
     # mem_limit: 8g
     # mem_reservation: 4g
 
-    # Optional: Healthcheck to verify service is responsive
-    # Using Python (guaranteed to be available in this container)
-    healthcheck:
-      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9000/docs', timeout=5)"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
-    # Alternative: Comment out healthcheck if you don't need it
+    # Healthcheck disabled - service takes time to start and healthcheck isn't critical
+    # The service works fine without it. Enable only if needed for monitoring.
     # healthcheck:
-    #   disable: true
+    #   test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9000/docs', timeout=5)"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    #   start_period: 60s
 
 networks:
   default:
