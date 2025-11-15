@@ -54,7 +54,7 @@ export async function transcribeAudioWithWhisperAsr(
       output: 'json',
       task: 'transcribe',
       encode: 'true',
-      word_timestamps: 'false', // Explicitly disable word timestamps for simpler response
+      // Note: word_timestamps removed - let server use default behavior
     });
 
     // Add language parameter if specified (not auto-detect)
