@@ -26,6 +26,13 @@ export enum TRANSCRIPT_PLATFORM {
 export enum LLM_PROVIDER {
   openai = 'openai',
   ollama = 'ollama',
+  claude = 'claude',
+}
+
+export enum CLAUDE_MODELS {
+  'claude-sonnet-4-5' = 'claude-sonnet-4-5-20250929',
+  'claude-haiku-4-5' = 'claude-haiku-4-5-20251001',
+  'claude-opus-4-1' = 'claude-opus-4-1-20250805',
 }
 
 export enum OBSIDIAN_PATHS {
@@ -65,6 +72,8 @@ export interface ScribePluginSettings {
   llmProvider: LLM_PROVIDER;
   ollamaBaseUrl: string;
   ollamaModel: string;
+  claudeApiKey: string;
+  claudeModel: string;
 }
 
 export const DEFAULT_SETTINGS: ScribePluginSettings = {
@@ -100,6 +109,8 @@ export const DEFAULT_SETTINGS: ScribePluginSettings = {
   llmProvider: LLM_PROVIDER.openai,
   ollamaBaseUrl: 'http://localhost:11434',
   ollamaModel: 'llama3.1:8b',
+  claudeApiKey: '',
+  claudeModel: CLAUDE_MODELS['claude-sonnet-4-5'],
 };
 
 export async function handleSettingsTab(plugin: ScribePlugin) {
