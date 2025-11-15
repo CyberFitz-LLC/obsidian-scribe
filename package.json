@@ -33,7 +33,6 @@
 		"@langchain/ollama": "^1.0.1",
 		"@langchain/openai": "^1.1.1",
 		"assemblyai": "^4.9.0",
-		"claude-code-collective": "file:../claude-code-sub-agent-collective/claude-code-collective-2.0.8.tgz",
 		"langchain": "^1.0.4",
 		"mini-debounce": "^1.0.8",
 		"openai": "^4.85.4",
