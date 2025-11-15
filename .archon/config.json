@@ -1,0 +1,49 @@
+{
+  "server": {
+    "url": "http://192.168.35.14:8051/mcp",
+    "timeout": 30000,
+    "retries": 3
+  },
+  "rag": {
+    "defaultMatchCount": 5,
+    "returnMode": "pages",
+    "enableReranking": true,
+    "chunkSize": 1000
+  },
+  "projects": {
+    "defaultPerPage": 10,
+    "autoCreateTasks": true,
+    "taskGranularity": "feature-specific"
+  },
+  "tasks": {
+    "defaultStatus": "todo",
+    "defaultAssignee": "User",
+    "includeClosed": false,
+    "taskOrder": {
+      "research": 90,
+      "design": 80,
+      "implement": 70,
+      "test": 60,
+      "document": 50
+    }
+  },
+  "documents": {
+    "defaultType": "spec",
+    "supportedTypes": [
+      "spec",
+      "design",
+      "note",
+      "prp",
+      "api",
+      "guide"
+    ]
+  },
+  "global": {
+    "projectName": "obsidian-scribe",
+    "userName": "john",
+    "installDate": "2025-11-15T07:08:43.980Z",
+    "version": "2.0.8",
+    "logLevel": "info",
+    "enableMetrics": true
+  }
+}

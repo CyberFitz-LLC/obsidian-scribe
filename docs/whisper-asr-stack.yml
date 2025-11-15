@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  whisper-asr-gpu:
+    image: onerahmet/openai-whisper-asr-webservice:latest-gpu
+    container_name: whisper-asr-gpu
+
+    # CRITICAL: Use nvidia runtime for GPU support in standalone Docker
+    runtime: nvidia
+
+    ports:
+      - "9000:9000"
+
+    environment:
+      # faster_whisper is optimized for GPU performance
+      - ASR_ENGINE=faster_whisper
+
+      # Use larger model with GPU - much better accuracy
+      # Options: base, small, medium, large-v2, large-v3
+      - ASR_MODEL=medium
+
+      # MUST be 'cuda' not 'gpu' for GPU acceleration
+      - ASR_DEVICE=cuda
+
+      # Compute type for GPU: float16 recommended for best balance
+      # Options: float16, int8_float16, int8
+      - COMPUTE_TYPE=float16
+
+      # Unload model after 10 minutes of inactivity to free GPU memory
+      - MODEL_IDLE_TIMEOUT=600
+
+      # REMOVED: WORD_TIMESTAMPS environment variable
+      # This should be controlled per-request via API parameters, not globally.
+      # Global setting can interfere with different use cases.
+
+      # Optional: Batch size (higher = faster but more GPU memory)
+      # - BATCH_SIZE=16
+
+      # Optional: Beam size for decoding (higher = better quality but slower)
+      # - BEAM_SIZE=5
+
+      # RECOMMENDED: Enable detailed logging for debugging
+      - LOG_LEVEL=DEBUG
+
+    volumes:
+      # Persist model cache to avoid re-downloading
+      - ./whisper-gpu-cache:/root/.cache
+
+    restart: unless-stopped
+
+    # Optional: Set memory limits if needed
+    # mem_limit: 8g
+    # mem_reservation: 4g
+
+    # Optional: Healthcheck to verify service is responsive
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/docs"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  default:
+    name: whisper-net
