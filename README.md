@@ -10,8 +10,9 @@ Forgot a phrase or concept while recording?  Ask "Hey Scribe" followed by a ques
 
 ## 🌟 Key Features
 - **Voice-to-Text Magic:** Begin recording and watch as your voice notes are transcribed, summarized, and turned into actionable insights.
+- **Multiple LLM Providers:** Choose between OpenAI, Claude (Anthropic), or Ollama (Local) for AI-powered summarization - use cloud services for quality or run completely offline with Ollama.
 - **Robust on Failure:** Designed with mobile users in mind, Scribe ensures that no step in the process is a single point of failure. Record, transcribe, and summarize on the go, with each step saved progressively. (WIP)
-- **Seamless Integration:** Utilizes AssemblyAI or OpenAI Whisper for top-tier transcription accuracy and OpenAI for cutting-edge summarization
+- **Seamless Integration:** Utilizes AssemblyAI, OpenAI Whisper, or local Whisper-ASR for top-tier transcription accuracy.
 - **Create your custom templates:** Harness the language models and insert your own custom prompts as template!
 - **Multi Language Support:** Select your language and go wild!
 - **Interactive Queries:** Ask questions mid-recording, and Scribe fetches the answers, integrating them directly into your notes.
@@ -24,14 +25,71 @@ Forgot a phrase or concept while recording?  Ask "Hey Scribe" followed by a ques
 - **Transcribe & Summarize Current File:** - Run this on an open audio file - it will Scribe this file.  Very useful for recording offline and later Scribing it
 - **Fix Mermaid Chart:** - Sometimes the generated Mermaid Chart is invalid, this will attempt to fix it.
 
-## ⚙️ Settings / Config
-- **OpenAI API Key (Required):** Essential for transcription and summarization. Set your key in the `Settings`.
+## ⚙️ Settings / Configuration
 
-Get your key here - [Open AI Developer Console - https://platform.openai.com/settings](https://platform.openai.com/settings)
+### LLM Provider Configuration
 
-- **AssemblyAI Key (Optional):** For enhanced transcription accuracy and optionality of services. Enjoy a $50 credit from AssemblyAI to get started.
+Scribe supports three LLM providers for AI-powered summarization. Choose the one that best fits your needs:
 
-Get your key in the  [AssemblyAI Dev Console https://www.assemblyai.com/app/account](https://www.assemblyai.com/app/account)
+#### OpenAI (Cloud)
+
+OpenAI provides high-quality summarization with industry-leading models.
+
+1. Get your API key from [OpenAI Platform](https://platform.openai.com/api-keys)
+2. In Scribe settings:
+   - Select "OpenAI" as LLM Provider
+   - Enter your OpenAI API key (starts with `sk-...`)
+   - Choose model:
+     - **GPT-4o** (Recommended): Best balance of quality, speed, and cost
+     - **GPT-4o-mini**: Faster, lower cost option
+     - **GPT-4.1**: Latest flagship model for complex summaries
+     - **GPT-4.1-mini**: Efficient mini version of latest model
+     - **GPT-4-turbo**: Previous generation flagship
+
+**Pricing**: See [OpenAI Pricing](https://openai.com/pricing)
+
+#### Claude (Anthropic) (Cloud)
+
+Claude provides high-quality summarization with subscription access.
+
+1. Get your API key from [Anthropic Console](https://console.anthropic.com/)
+2. In Scribe settings:
+   - Select "Claude (Anthropic)" as LLM Provider
+   - Enter your Claude API key (starts with `sk-ant-...`)
+   - Choose model:
+     - **Claude Sonnet 4.5** (Recommended): Best balance of quality, speed, and cost
+     - **Claude Haiku 4.5**: Faster, lower cost option
+     - **Claude Opus 4.1**: Maximum quality for complex summaries
+
+**Pricing**: See [Anthropic Pricing](https://www.anthropic.com/pricing)
+
+#### Ollama (Local)
+
+Run summarization completely locally with Ollama - no API keys required, complete privacy, works offline.
+
+1. Install Ollama from [ollama.ai](https://ollama.ai)
+2. Pull a model: `ollama pull llama3.1:8b` or `ollama pull qwen2.5:7b`
+3. In Scribe settings:
+   - Select "Ollama (Local)" as LLM Provider
+   - Set Base URL (default: `http://localhost:11434`)
+   - Enter model name (e.g., `llama3.1:8b`, `qwen2.5:7b`, `mistral:7b`)
+
+**Benefits**: Complete privacy, no API costs, works offline
+**Note**: Requires adequate CPU/GPU for best performance. Quality may vary by model.
+
+### Transcription Configuration
+
+Choose your preferred transcription service:
+
+- **OpenAI Whisper (Default):** High-quality transcription using OpenAI's Whisper model. Requires OpenAI API key.
+
+- **AssemblyAI (Optional):** For enhanced transcription accuracy and speaker diarization. Enjoy a $50 credit from AssemblyAI to get started.
+  - Get your key from [AssemblyAI Console](https://www.assemblyai.com/app/account)
+
+- **Whisper-ASR (Local):** Run transcription locally with Whisper-ASR server for complete privacy.
+  - Set base URL to your Whisper-ASR instance (e.g., `http://localhost:9000`)
+
+### Other Settings
 
 - **Audio Input Device:** Select which microphone to use for recording. By default, the system's default audio input device will be used.
 
@@ -84,13 +142,55 @@ Scribe is released under the MIT License. Feel free to use, modify, and distribu
 
 Got questions, feedback, or ideas? Reach out through [GitHub Issues](#) or join our Discord channel to become part of the Scribe community.
 
+## 🔧 Troubleshooting
+
+### OpenAI Issues
+
+- **401 Unauthorized**: Check your API key is correct and active at [OpenAI Platform](https://platform.openai.com/api-keys)
+- **429 Rate Limit**: You've exceeded your rate limit or quota. Check your usage and billing at [OpenAI Usage](https://platform.openai.com/usage)
+- **Insufficient Credits**: Add credits to your OpenAI account at [Billing](https://platform.openai.com/settings/organization/billing)
+
+### Claude (Anthropic) Issues
+
+- **401 Unauthorized**: Check your API key is correct and active at [Anthropic Console](https://console.anthropic.com/)
+- **429 Rate Limit**: You've exceeded your rate limit. Wait and try again, or check your plan limits
+- **500 Server Error**: Anthropic service issue. Check [Anthropic Status](https://status.anthropic.com/) and try again later
+
+### Ollama Issues
+
+- **Connection Failed**: Verify Ollama is running with `ollama list` in terminal
+- **Model Not Found**: Ensure the model is downloaded with `ollama pull <model-name>`
+- **Base URL Incorrect**: Default is `http://localhost:11434` - verify Ollama is running on this port
+- **Slow Performance**: Ollama requires adequate CPU/GPU. Consider using smaller models (7b/8b) or upgrading hardware
+- **Quality Issues**: Try different models - qwen2.5:7b and llama3.1:8b typically provide best quality for summarization
+
+### Transcription Issues
+
+- **Whisper-ASR Connection**: Verify your Whisper-ASR server is running and the base URL is correct
+- **AssemblyAI Errors**: Check your API key and account credits at [AssemblyAI Console](https://www.assemblyai.com/app/account)
+
 ## ❓ FAQ
 
-**Q: Do I need both OpenAI and AssemblyAI keys?**  
-A: An OpenAI key is essential, while the AssemblyAI key is optional but recommended for better transcription accuracy.
+**Q: Which LLM provider should I choose?**
+A:
+- **OpenAI**: Best overall quality and reliability with GPT-4o models
+- **Claude**: Excellent quality with strong performance on complex reasoning tasks
+- **Ollama**: Best for privacy-conscious users who want to run completely offline without API costs
 
-**Q: Can I use Scribe offline?**  
-A: Scribe requires an internet connection for transcription and summarization services.  You can record offline and later use the Transcribe & Summarize Current File command on the Audio file to Scribe it.
+**Q: Do I need API keys?**
+A: It depends on your provider choice:
+- **OpenAI** or **Claude**: Yes, you need an API key from the respective provider
+- **Ollama**: No API key needed - runs completely locally
+- **Transcription**: OpenAI Whisper or AssemblyAI requires API keys, but Whisper-ASR can run locally
+
+**Q: Can I use Scribe completely offline?**
+A: Yes! Use Ollama for summarization and Whisper-ASR for transcription to run Scribe entirely offline with complete privacy. You can record offline and later use the "Transcribe & Summarize Current File" command on the audio file.
+
+**Q: Which models are recommended?**
+A:
+- **OpenAI**: GPT-4o (best balance) or GPT-4o-mini (faster/cheaper)
+- **Claude**: Claude Sonnet 4.5 (best balance) or Claude Haiku 4.5 (faster/cheaper)
+- **Ollama**: llama3.1:8b or qwen2.5:7b for good quality on consumer hardware
 
 ---
 
