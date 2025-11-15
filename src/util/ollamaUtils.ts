@@ -35,7 +35,8 @@ export async function summarizeTranscriptWithOllama(
   - Do not mention "the speaker" anywhere in your response.
   - The notes should be written as if I were writing them.
 
-  CRITICAL: You MUST respond with valid JSON containing ALL required fields.
+  CRITICAL: You MUST respond with ONLY valid JSON. Do NOT include any explanatory text, thinking process, or commentary.
+  Start your response with { and end with }. Nothing else.
   If you cannot generate content for a field, use an empty string "" but include the field.
 
   The following is the transcribed audio:
@@ -88,18 +89,45 @@ export async function summarizeTranscriptWithOllama(
     }
 
     // Invoke and get structured result
-    const rawResult = (await structuredLlm.invoke(messages)) as any;
+    let rawResult = (await structuredLlm.invoke(messages)) as any;
+
+    // Some models (like qwen3) may include explanatory text before/after JSON
+    // Try to extract JSON if the response is a string with JSON embedded
+    if (typeof rawResult === 'string') {
+      console.log('Ollama returned string instead of object, attempting JSON extraction...');
+
+      // Try to find JSON object in the string
+      const jsonMatch = rawResult.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          rawResult = JSON.parse(jsonMatch[0]);
+          console.log('Successfully extracted JSON from text response');
+        } catch (e) {
+          console.error('Failed to parse extracted JSON:', e);
+          throw new Error('Model returned text instead of JSON. Try a different model or check the response format.');
+        }
+      } else {
+        throw new Error('Model returned text without valid JSON. Response: ' + rawResult.substring(0, 200));
+      }
+    }
 
     // Ollama wraps the response in a different format than OpenAI
-    // Check if response is wrapped in {name, parameters} structure
+    // Check if response is wrapped in {name, parameters} or {name, arguments} structure
     let result: Record<string, string> & { fileTitle: string };
 
-    if (rawResult && typeof rawResult === 'object' && 'parameters' in rawResult) {
-      // Unwrap the parameters object
-      result = rawResult.parameters;
+    if (rawResult && typeof rawResult === 'object') {
+      if ('parameters' in rawResult) {
+        // Unwrap the parameters object
+        result = rawResult.parameters;
+      } else if ('arguments' in rawResult) {
+        // Some models use 'arguments' instead of 'parameters'
+        result = rawResult.arguments;
+      } else {
+        // Use response as-is
+        result = rawResult;
+      }
     } else {
-      // Use response as-is
-      result = rawResult;
+      throw new Error('Invalid response format from Ollama');
     }
 
     // Validate and fix the result
