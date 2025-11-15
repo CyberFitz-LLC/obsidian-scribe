@@ -85,7 +85,19 @@ export async function transcribeAudioWithWhisperAsr(
     // Parse response and extract text
     const result: WhisperAsrResponse = await response.json();
 
-    new Notice('Scribe: Transcription complete');
+    // Debug logging
+    console.log('Whisper-ASR response:', result);
+    console.log('Whisper-ASR text length:', result?.text?.length || 0);
+
+    // Check if we got a valid response
+    if (!result || !result.text) {
+      const errorMsg = 'Whisper-ASR returned empty transcript';
+      new Notice(`Scribe: ${errorMsg}. Check browser console for details.`, 10000);
+      console.error('Whisper-ASR empty response:', result);
+      throw new Error(errorMsg);
+    }
+
+    new Notice(`Scribe: Transcription complete (${result.text.length} chars)`);
 
     return result.text;
 
