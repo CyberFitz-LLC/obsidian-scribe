@@ -473,6 +473,8 @@ export default class ScribePlugin extends Plugin {
         llmModel: this.settings.llmModel,
         ollamaBaseUrl: this.settings.ollamaBaseUrl,
         ollamaModel: this.settings.ollamaModel,
+        claudeApiKey: this.settings.claudeApiKey,
+        claudeModel: this.settings.claudeModel,
         useCustomOpenAiBaseUrl: this.settings.useCustomOpenAiBaseUrl,
         customOpenAiBaseUrl: this.settings.customOpenAiBaseUrl,
         customChatModel: this.settings.customChatModel,

@@ -178,6 +178,8 @@ export async function summarizeTranscript(
     llmModel: LLM_MODELS;
     ollamaBaseUrl: string;
     ollamaModel: string;
+    claudeApiKey: string;
+    claudeModel: string;
     useCustomOpenAiBaseUrl: boolean;
     customOpenAiBaseUrl: string;
     customChatModel: string;
@@ -191,6 +193,15 @@ export async function summarizeTranscript(
     return await summarizeTranscriptWithOllama(
       settings.ollamaBaseUrl,
       settings.ollamaModel,
+      transcript,
+      scribeOptions,
+    );
+  } else if (llmProvider === LLM_PROVIDER.claude) {
+    // Use Claude
+    const { summarizeTranscriptWithClaude } = await import('./claudeUtils');
+    return await summarizeTranscriptWithClaude(
+      settings.claudeApiKey,
+      settings.claudeModel,
       transcript,
       scribeOptions,
     );
