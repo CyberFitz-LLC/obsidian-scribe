@@ -138,8 +138,8 @@ export async function summarizeTranscriptWithOllama(
 
     // Ensure all required fields exist with defaults
     const validatedResult: Record<string, string> & { fileTitle: string } = {
-      fileTitle: result.fileTitle || 'Untitled Note',
       ...result,
+      fileTitle: result.fileTitle || 'Untitled Note', // Override after spread to provide default
     };
 
     // Ensure all template sections have values (even if empty)
