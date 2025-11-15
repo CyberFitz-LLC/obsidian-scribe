@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  # Whisper-ASR service (no changes)
+  whisper-asr-gpu:
+    image: onerahmet/openai-whisper-asr-webservice:latest-gpu
+    container_name: whisper-asr-gpu
+
+    runtime: nvidia
+
+    # Don't expose port 9000 directly - only through Caddy
+    expose:
+      - "9000"
+
+    environment:
+      - ASR_ENGINE=faster_whisper
+      - ASR_MODEL=medium
+      - ASR_DEVICE=cuda
+      - COMPUTE_TYPE=float16
+      - MODEL_IDLE_TIMEOUT=600
+      - LOG_LEVEL=DEBUG
+
+    volumes:
+      - ./whisper-gpu-cache:/root/.cache
+
+    restart: unless-stopped
+
+    networks:
+      - whisper-net
+
+  # Caddy reverse proxy to add CORS headers
+  caddy:
+    image: caddy:latest
+    container_name: whisper-caddy
+
+    ports:
+      - "9000:9000"  # Expose through Caddy instead
+
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+
+    restart: unless-stopped
+
+    networks:
+      - whisper-net
+
+    depends_on:
+      - whisper-asr-gpu
+
+networks:
+  whisper-net:
+    driver: bridge

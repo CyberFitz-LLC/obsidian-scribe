@@ -1,0 +1,23 @@
+:9000 {
+    # Enable CORS for all origins (safe for local development)
+    @cors {
+        header Origin *
+    }
+
+    # Add CORS headers to all responses
+    header {
+        Access-Control-Allow-Origin "*"
+        Access-Control-Allow-Methods "GET, POST, OPTIONS"
+        Access-Control-Allow-Headers "*"
+        Access-Control-Max-Age "3600"
+    }
+
+    # Handle OPTIONS preflight requests
+    @options {
+        method OPTIONS
+    }
+    respond @options 204
+
+    # Proxy all requests to Whisper-ASR service
+    reverse_proxy whisper-asr-gpu:9000
+}
