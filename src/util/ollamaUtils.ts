@@ -35,6 +35,9 @@ export async function summarizeTranscriptWithOllama(
   - Do not mention "the speaker" anywhere in your response.
   - The notes should be written as if I were writing them.
 
+  CRITICAL: You MUST respond with valid JSON containing ALL required fields.
+  If you cannot generate content for a field, use an empty string "" but include the field.
+
   The following is the transcribed audio:
   <transcript>
   ${transcript}
@@ -60,9 +63,13 @@ export async function summarizeTranscriptWithOllama(
 
     activeNoteTemplate.sections.forEach((section) => {
       const { sectionHeader, sectionInstructions, isSectionOptional } = section;
-      schema[convertToSafeJsonKey(sectionHeader)] = isSectionOptional
-        ? z.string().nullish().describe(sectionInstructions)
-        : z.string().describe(sectionInstructions);
+      // Make all fields optional with defaults for Ollama compatibility
+      // Smaller Ollama models struggle with strict structured output
+      schema[convertToSafeJsonKey(sectionHeader)] = z
+        .string()
+        .optional()
+        .default('')
+        .describe(sectionInstructions);
     });
 
     const structuredOutput = z.object(schema);
@@ -95,13 +102,32 @@ export async function summarizeTranscriptWithOllama(
       result = rawResult;
     }
 
-    // Validate the unwrapped result matches our schema
-    if (!result || !result.fileTitle) {
+    // Validate and fix the result
+    if (!result || typeof result !== 'object') {
       console.error('Ollama response validation failed:', rawResult);
       throw new Error('Ollama returned invalid response structure. Check console for details.');
     }
 
-    return result;
+    // Ensure all required fields exist with defaults
+    const validatedResult: Record<string, string> & { fileTitle: string } = {
+      fileTitle: result.fileTitle || 'Untitled Note',
+      ...result,
+    };
+
+    // Ensure all template sections have values (even if empty)
+    activeNoteTemplate.sections.forEach((section) => {
+      const key = convertToSafeJsonKey(section.sectionHeader);
+      if (!validatedResult[key]) {
+        validatedResult[key] = '';
+      }
+    });
+
+    console.log('Ollama summarization successful:', {
+      fileTitle: validatedResult.fileTitle,
+      fieldsCount: Object.keys(validatedResult).length,
+    });
+
+    return validatedResult;
   } catch (error) {
     // Provide helpful error messages for common Ollama issues
     if (error.message?.includes('ECONNREFUSED')) {
