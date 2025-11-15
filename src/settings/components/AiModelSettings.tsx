@@ -9,6 +9,7 @@ import {
   LanguageOptions,
   type OutputLanguageOptions,
 } from 'src/util/consts';
+import { Notice } from 'obsidian';
 
 export const AiModelSettings: React.FC<{
   plugin: ScribePlugin;
@@ -55,6 +56,8 @@ export const AiModelSettings: React.FC<{
   const [claudeModel, setClaudeModel] = useState(
     plugin.settings.claudeModel,
   );
+  const [isTestingWhisperAsr, setIsTestingWhisperAsr] = useState(false);
+  const [isTestingOllama, setIsTestingOllama] = useState(false);
 
   const handleToggleMultiSpeaker = () => {
     const value = !isMultiSpeakerEnabled;
@@ -125,6 +128,46 @@ export const AiModelSettings: React.FC<{
     saveSettings();
   };
 
+  const testWhisperAsrConnection = async (baseUrl: string) => {
+    setIsTestingWhisperAsr(true);
+    try {
+      const response = await fetch(`${baseUrl}/docs`);
+      if (response.ok) {
+        new Notice('Scribe: Connected to Whisper-ASR successfully');
+        return true;
+      } else {
+        new Notice(`Scribe: Connection failed: HTTP ${response.status} ${response.statusText}`);
+        return false;
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      new Notice(`Scribe: Connection failed: ${errorMessage}`);
+      return false;
+    } finally {
+      setIsTestingWhisperAsr(false);
+    }
+  };
+
+  const testOllamaConnection = async (baseUrl: string) => {
+    setIsTestingOllama(true);
+    try {
+      const response = await fetch(`${baseUrl}/api/tags`);
+      if (response.ok) {
+        new Notice('Scribe: Connected to Ollama successfully');
+        return true;
+      } else {
+        new Notice(`Scribe: Connection failed: HTTP ${response.status} ${response.statusText}`);
+        return false;
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      new Notice(`Scribe: Connection failed: ${errorMessage}`);
+      return false;
+    } finally {
+      setIsTestingOllama(false);
+    }
+  };
+
   return (
     <div>
       <h2>AI model options</h2>
@@ -174,19 +217,34 @@ export const AiModelSettings: React.FC<{
       />
 
       {transcriptPlatform === TRANSCRIPT_PLATFORM.whisperAsr && (
-        <SettingsItem
-          name="Whisper-ASR base URL"
-          description="The base URL for your local Whisper-ASR server"
-          control={
-            <input
-              type="text"
-              placeholder="http://localhost:9000"
-              value={whisperAsrBaseUrl}
-              onChange={(e) => handleWhisperAsrBaseUrlChange(e.target.value)}
-              className="text-input"
-            />
-          }
-        />
+        <>
+          <SettingsItem
+            name="Whisper-ASR base URL"
+            description="The base URL for your local Whisper-ASR server"
+            control={
+              <input
+                type="text"
+                placeholder="http://localhost:9000"
+                value={whisperAsrBaseUrl}
+                onChange={(e) => handleWhisperAsrBaseUrlChange(e.target.value)}
+                className="text-input"
+              />
+            }
+          />
+          <SettingsItem
+            name="Test Whisper-ASR Connection"
+            description="Verify connection to your Whisper-ASR server"
+            control={
+              <button
+                onClick={() => testWhisperAsrConnection(whisperAsrBaseUrl)}
+                disabled={isTestingWhisperAsr || !whisperAsrBaseUrl}
+                className="mod-cta"
+              >
+                {isTestingWhisperAsr ? 'Testing...' : 'Test Connection'}
+              </button>
+            }
+          />
+        </>
       )}
 
       {transcriptPlatform === TRANSCRIPT_PLATFORM.assemblyAi && (
@@ -320,6 +378,19 @@ export const AiModelSettings: React.FC<{
                 onChange={(e) => handleOllamaBaseUrlChange(e.target.value)}
                 className="text-input"
               />
+            }
+          />
+          <SettingsItem
+            name="Test Ollama Connection"
+            description="Verify connection to your Ollama server"
+            control={
+              <button
+                onClick={() => testOllamaConnection(ollamaBaseUrl)}
+                disabled={isTestingOllama || !ollamaBaseUrl}
+                className="mod-cta"
+              >
+                {isTestingOllama ? 'Testing...' : 'Test Connection'}
+              </button>
             }
           />
 
