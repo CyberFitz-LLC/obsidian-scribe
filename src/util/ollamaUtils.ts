@@ -80,11 +80,26 @@ export async function summarizeTranscriptWithOllama(
       );
     }
 
-    // Invoke and return structured result
-    const result = (await structuredLlm.invoke(messages)) as Record<
-      string,
-      string
-    > & { fileTitle: string };
+    // Invoke and get structured result
+    const rawResult = (await structuredLlm.invoke(messages)) as any;
+
+    // Ollama wraps the response in a different format than OpenAI
+    // Check if response is wrapped in {name, parameters} structure
+    let result: Record<string, string> & { fileTitle: string };
+
+    if (rawResult && typeof rawResult === 'object' && 'parameters' in rawResult) {
+      // Unwrap the parameters object
+      result = rawResult.parameters;
+    } else {
+      // Use response as-is
+      result = rawResult;
+    }
+
+    // Validate the unwrapped result matches our schema
+    if (!result || !result.fileTitle) {
+      console.error('Ollama response validation failed:', rawResult);
+      throw new Error('Ollama returned invalid response structure. Check console for details.');
+    }
 
     return result;
   } catch (error) {
