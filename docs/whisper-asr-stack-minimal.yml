@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  whisper-asr-gpu:
+    image: onerahmet/openai-whisper-asr-webservice:latest-gpu
+    container_name: whisper-asr-gpu
+
+    runtime: nvidia
+
+    ports:
+      - "9000:9000"
+
+    environment:
+      # Minimal configuration - only essential variables
+      - ASR_ENGINE=faster_whisper
+      - ASR_MODEL=medium
+      - ASR_DEVICE=cuda
+
+    volumes:
+      - ./whisper-gpu-cache:/root/.cache
+
+    restart: unless-stopped
+
+networks:
+  default:
+    name: whisper-net

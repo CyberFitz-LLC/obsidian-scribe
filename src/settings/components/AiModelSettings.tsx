@@ -2,7 +2,7 @@ import type ScribePlugin from 'src';
 import { useState } from 'react';
 import { SettingsItem } from './SettingsItem';
 import { set } from 'zod';
-import { TRANSCRIPT_PLATFORM, LLM_PROVIDER } from '../settings';
+import { TRANSCRIPT_PLATFORM, LLM_PROVIDER, CLAUDE_MODELS } from '../settings';
 import { LLM_MODELS } from 'src/util/openAiUtils';
 import {
   LanguageDisplayNames,
@@ -48,6 +48,12 @@ export const AiModelSettings: React.FC<{
   );
   const [ollamaModel, setOllamaModel] = useState(
     plugin.settings.ollamaModel,
+  );
+  const [claudeApiKey, setClaudeApiKey] = useState(
+    plugin.settings.claudeApiKey,
+  );
+  const [claudeModel, setClaudeModel] = useState(
+    plugin.settings.claudeModel,
   );
 
   const handleToggleMultiSpeaker = () => {
@@ -104,6 +110,18 @@ export const AiModelSettings: React.FC<{
   const handleOllamaModelChange = (value: string) => {
     setOllamaModel(value);
     plugin.settings.ollamaModel = value;
+    saveSettings();
+  };
+
+  const handleClaudeApiKeyChange = (value: string) => {
+    setClaudeApiKey(value);
+    plugin.settings.claudeApiKey = value;
+    saveSettings();
+  };
+
+  const handleClaudeModelChange = (value: string) => {
+    setClaudeModel(value);
+    plugin.settings.claudeModel = value;
     saveSettings();
   };
 
@@ -284,6 +302,7 @@ export const AiModelSettings: React.FC<{
           >
             <option value={LLM_PROVIDER.openai}>OpenAI</option>
             <option value={LLM_PROVIDER.ollama}>Ollama (Local)</option>
+            <option value={LLM_PROVIDER.claude}>Claude (Anthropic)</option>
           </select>
         }
       />
@@ -315,6 +334,42 @@ export const AiModelSettings: React.FC<{
                 onChange={(e) => handleOllamaModelChange(e.target.value)}
                 className="text-input"
               />
+            }
+          />
+        </>
+      )}
+
+      {llmProvider === LLM_PROVIDER.claude && (
+        <>
+          <SettingsItem
+            name="Claude API key"
+            description="Enter your Claude Subscription API key from https://console.anthropic.com/"
+            control={
+              <input
+                type="password"
+                placeholder="sk-ant-..."
+                value={claudeApiKey}
+                onChange={(e) => handleClaudeApiKeyChange(e.target.value)}
+                className="text-input"
+              />
+            }
+          />
+
+          <SettingsItem
+            name="Claude model"
+            description="Choose the Claude model for summarization (Sonnet recommended)"
+            control={
+              <select
+                defaultValue={claudeModel}
+                className="dropdown"
+                onChange={(e) => handleClaudeModelChange(e.target.value)}
+              >
+                {Object.entries(CLAUDE_MODELS).map(([displayName, apiId]) => (
+                  <option key={apiId} value={apiId}>
+                    {displayName}
+                  </option>
+                ))}
+              </select>
             }
           />
         </>
