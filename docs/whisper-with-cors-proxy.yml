@@ -28,16 +28,38 @@ services:
     networks:
       - whisper-net
 
-  # Caddy reverse proxy to add CORS headers
-  caddy:
-    image: caddy:latest
-    container_name: whisper-caddy
+  # nginx reverse proxy to add CORS headers
+  nginx-cors:
+    image: nginx:alpine
+    container_name: whisper-nginx-cors
 
     ports:
-      - "9000:9000"  # Expose through Caddy instead
+      - "9000:9000"  # Expose through nginx instead
 
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
+    # Create nginx config inline using command
+    command: >
+      sh -c "echo '
+      server {
+          listen 9000;
+          location / {
+              # CORS headers
+              add_header Access-Control-Allow-Origin * always;
+              add_header Access-Control-Allow-Methods \"GET, POST, OPTIONS\" always;
+              add_header Access-Control-Allow-Headers \"*\" always;
+              add_header Access-Control-Max-Age 3600 always;
+
+              # Handle preflight
+              if ($$request_method = OPTIONS) {
+                  return 204;
+              }
+
+              # Proxy to Whisper-ASR
+              proxy_pass http://whisper-asr-gpu:9000;
+              proxy_set_header Host $$host;
+              proxy_set_header X-Real-IP $$remote_addr;
+          }
+      }
+      ' > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
 
     restart: unless-stopped
 
