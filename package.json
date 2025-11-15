@@ -29,6 +29,7 @@
 		"@ffmpeg/ffmpeg": "^0.12.15",
 		"@ffmpeg/util": "^0.12.2",
 		"@fix-webm-duration/fix": "^1.0.1",
+		"@langchain/anthropic": "^1.0.1",
 		"@langchain/core": "^1.0.5",
 		"@langchain/ollama": "^1.0.1",
 		"@langchain/openai": "^1.1.1",
