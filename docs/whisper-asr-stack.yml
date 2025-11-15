@@ -29,6 +29,10 @@ services:
       # Unload model after 10 minutes of inactivity to free GPU memory
       - MODEL_IDLE_TIMEOUT=600
 
+      # CRITICAL: Enable CORS for Obsidian (app://obsidian.md origin)
+      # Allow all origins for local development
+      - ALLOWED_ORIGINS=*
+
       # REMOVED: WORD_TIMESTAMPS environment variable
       # This should be controlled per-request via API parameters, not globally.
       # Global setting can interfere with different use cases.
