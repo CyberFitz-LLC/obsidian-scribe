@@ -2,9 +2,27 @@
 
 Transform your voice into insights with Scribe, an Obsidian plugin that not only records your voice and transcribes it, but summarizes, and enriches the note with the power of AI. 
 
-Dive into a seamless experience where your spoken words are effortlessly converted into a structured, easy-to-navigate knowledge base.  
+Dive into a seamless experience where your spoken words are effortlessly converted into a structured, easy-to-navigate knowledge base.
 
 Forgot a phrase or concept while recording?  Ask "Hey Scribe" followed by a question in the middle of recording and it will fill in the blanks for you
+
+## Local AI Support
+
+Run Scribe completely locally with no cloud dependencies for **complete privacy** and **zero API costs**:
+
+- **Local Transcription**: Use Whisper-ASR to transcribe voice locally via Docker
+- **Local LLM**: Use Ollama to generate summaries entirely on your machine
+- **Offline Operation**: Record, transcribe, and summarize without internet connection
+- **Privacy First**: Your voice notes never leave your computer
+
+**Benefits:**
+- No API keys required
+- No usage limits or costs
+- Complete data sovereignty
+- Works offline
+
+**See the [Local Setup Guide](docs/LOCAL_SETUP.md) for complete installation instructions.**
+
 ## Screenshots
 ![obsidian-scribe-screenshots](https://github.com/user-attachments/assets/79eb4427-799a-47ba-8024-4d1350ac47cf)
 
