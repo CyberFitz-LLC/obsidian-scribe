@@ -20,6 +20,12 @@ import { getDefaultPathSettings } from 'src/util/pathUtils';
 export enum TRANSCRIPT_PLATFORM {
   assemblyAi = 'assemblyAi',
   openAi = 'openAi',
+  whisperAsr = 'whisperAsr',
+}
+
+export enum LLM_PROVIDER {
+  openai = 'openai',
+  ollama = 'ollama',
 }
 
 export enum OBSIDIAN_PATHS {
@@ -53,6 +59,12 @@ export interface ScribePluginSettings {
   customOpenAiBaseUrl: string;
   customTranscriptModel: string;
   customChatModel: string;
+  // Whisper-ASR settings
+  whisperAsrBaseUrl: string;
+  // LLM Provider settings
+  llmProvider: LLM_PROVIDER;
+  ollamaBaseUrl: string;
+  ollamaModel: string;
 }
 
 export const DEFAULT_SETTINGS: ScribePluginSettings = {
@@ -82,6 +94,12 @@ export const DEFAULT_SETTINGS: ScribePluginSettings = {
   customOpenAiBaseUrl: '',
   customTranscriptModel: 'whisper-1',
   customChatModel: 'gpt-4o',
+  // Whisper-ASR settings
+  whisperAsrBaseUrl: 'http://localhost:9000',
+  // LLM Provider settings
+  llmProvider: LLM_PROVIDER.openai,
+  ollamaBaseUrl: 'http://localhost:11434',
+  ollamaModel: 'llama3.1:8b',
 };
 
 export async function handleSettingsTab(plugin: ScribePlugin) {

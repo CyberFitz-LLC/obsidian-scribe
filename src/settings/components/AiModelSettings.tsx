@@ -2,7 +2,7 @@ import type ScribePlugin from 'src';
 import { useState } from 'react';
 import { SettingsItem } from './SettingsItem';
 import { set } from 'zod';
-import { TRANSCRIPT_PLATFORM } from '../settings';
+import { TRANSCRIPT_PLATFORM, LLM_PROVIDER } from '../settings';
 import { LLM_MODELS } from 'src/util/openAiUtils';
 import {
   LanguageDisplayNames,
@@ -36,6 +36,18 @@ export const AiModelSettings: React.FC<{
   );
   const [customChatModel, setCustomChatModel] = useState(
     plugin.settings.customChatModel,
+  );
+  const [whisperAsrBaseUrl, setWhisperAsrBaseUrl] = useState(
+    plugin.settings.whisperAsrBaseUrl,
+  );
+  const [llmProvider, setLlmProvider] = useState<LLM_PROVIDER>(
+    plugin.settings.llmProvider,
+  );
+  const [ollamaBaseUrl, setOllamaBaseUrl] = useState(
+    plugin.settings.ollamaBaseUrl,
+  );
+  const [ollamaModel, setOllamaModel] = useState(
+    plugin.settings.ollamaModel,
   );
 
   const handleToggleMultiSpeaker = () => {
@@ -74,6 +86,24 @@ export const AiModelSettings: React.FC<{
   const handleCustomChatModelChange = (value: string) => {
     setCustomChatModel(value);
     plugin.settings.customChatModel = value;
+    saveSettings();
+  };
+
+  const handleWhisperAsrBaseUrlChange = (value: string) => {
+    setWhisperAsrBaseUrl(value);
+    plugin.settings.whisperAsrBaseUrl = value;
+    saveSettings();
+  };
+
+  const handleOllamaBaseUrlChange = (value: string) => {
+    setOllamaBaseUrl(value);
+    plugin.settings.ollamaBaseUrl = value;
+    saveSettings();
+  };
+
+  const handleOllamaModelChange = (value: string) => {
+    setOllamaModel(value);
+    plugin.settings.ollamaModel = value;
     saveSettings();
   };
 
@@ -120,9 +150,26 @@ export const AiModelSettings: React.FC<{
           >
             <option value={TRANSCRIPT_PLATFORM.openAi}>OpenAi</option>
             <option value={TRANSCRIPT_PLATFORM.assemblyAi}>AssemblyAI</option>
+            <option value={TRANSCRIPT_PLATFORM.whisperAsr}>Whisper-ASR (Local)</option>
           </select>
         }
       />
+
+      {transcriptPlatform === TRANSCRIPT_PLATFORM.whisperAsr && (
+        <SettingsItem
+          name="Whisper-ASR base URL"
+          description="The base URL for your local Whisper-ASR server"
+          control={
+            <input
+              type="text"
+              placeholder="http://localhost:9000"
+              value={whisperAsrBaseUrl}
+              onChange={(e) => handleWhisperAsrBaseUrlChange(e.target.value)}
+              className="text-input"
+            />
+          }
+        />
+      )}
 
       {transcriptPlatform === TRANSCRIPT_PLATFORM.assemblyAi && (
         <SettingsItem
@@ -219,6 +266,59 @@ export const AiModelSettings: React.FC<{
           </select>
         }
       />
+
+      <h3>LLM Provider</h3>
+      <SettingsItem
+        name="LLM Provider"
+        description="Choose the provider for summarization and chat functionality"
+        control={
+          <select
+            defaultValue={llmProvider}
+            className="dropdown"
+            onChange={(e) => {
+              const value = e.target.value as LLM_PROVIDER;
+              setLlmProvider(value);
+              plugin.settings.llmProvider = value;
+              saveSettings();
+            }}
+          >
+            <option value={LLM_PROVIDER.openai}>OpenAI</option>
+            <option value={LLM_PROVIDER.ollama}>Ollama (Local)</option>
+          </select>
+        }
+      />
+
+      {llmProvider === LLM_PROVIDER.ollama && (
+        <>
+          <SettingsItem
+            name="Ollama base URL"
+            description="The base URL for your local Ollama server"
+            control={
+              <input
+                type="text"
+                placeholder="http://localhost:11434"
+                value={ollamaBaseUrl}
+                onChange={(e) => handleOllamaBaseUrlChange(e.target.value)}
+                className="text-input"
+              />
+            }
+          />
+
+          <SettingsItem
+            name="Ollama model"
+            description="The Ollama model to use for summarization (e.g., llama3.1:8b, mistral, etc.)"
+            control={
+              <input
+                type="text"
+                placeholder="llama3.1:8b"
+                value={ollamaModel}
+                onChange={(e) => handleOllamaModelChange(e.target.value)}
+                className="text-input"
+              />
+            }
+          />
+        </>
+      )}
 
       <h3>Custom OpenAI Configuration</h3>
       <SettingsItem
