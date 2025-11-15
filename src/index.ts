@@ -407,28 +407,39 @@ export default class ScribePlugin extends Plugin {
         );
         return "";
       }
-      
+
       new Notice(
         `Scribe: 🎧 Beginning transcription w/ ${this.settings.transcriptPlatform}`,
       );
-      const transcript =
-        this.settings.transcriptPlatform === TRANSCRIPT_PLATFORM.assemblyAi
-          ? await transcribeAudioWithAssemblyAi(
-              this.settings.assemblyAiApiKey,
-              audioBuffer,
-              scribeOptions,
-            )
-          : await chunkAndTranscribeWithOpenAi(
-              this.settings.openAiApiKey,
-              audioBuffer,
-              scribeOptions,
-              this.settings.useCustomOpenAiBaseUrl 
-                ? this.settings.customOpenAiBaseUrl 
-                : undefined,
-              this.settings.useCustomOpenAiBaseUrl 
-                ? this.settings.customTranscriptModel 
-                : undefined,
-            );
+
+      let transcript: string;
+
+      if (this.settings.transcriptPlatform === TRANSCRIPT_PLATFORM.assemblyAi) {
+        transcript = await transcribeAudioWithAssemblyAi(
+          this.settings.assemblyAiApiKey,
+          audioBuffer,
+          scribeOptions,
+        );
+      } else if (this.settings.transcriptPlatform === TRANSCRIPT_PLATFORM.whisperAsr) {
+        const { transcribeAudioWithWhisperAsr } = await import('./util/whisperAsrUtil');
+        transcript = await transcribeAudioWithWhisperAsr(
+          this.settings.whisperAsrBaseUrl,
+          audioBuffer,
+          { audioFileLanguage: scribeOptions.audioFileLanguage },
+        );
+      } else {
+        transcript = await chunkAndTranscribeWithOpenAi(
+          this.settings.openAiApiKey,
+          audioBuffer,
+          scribeOptions,
+          this.settings.useCustomOpenAiBaseUrl
+            ? this.settings.customOpenAiBaseUrl
+            : undefined,
+          this.settings.useCustomOpenAiBaseUrl
+            ? this.settings.customTranscriptModel
+            : undefined,
+        );
+      }
 
       new Notice(
         `Scribe: 🎧 Completed transcription  w/ ${this.settings.transcriptPlatform}`,
