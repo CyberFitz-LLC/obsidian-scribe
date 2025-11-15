@@ -22,6 +22,7 @@ Forgot a phrase or concept while recording?  Ask "Hey Scribe" followed by a ques
 - Either Click Start Recording or Open the Controls Modal
 ### From the Command Pallette type "Scribe"
 - **Begin Recording with Scribe:** - Opens the controls modal for you to begin recording
+- **Select and transcribe audio file:** - Choose an existing audio file from your vault to transcribe and summarize
 - **Transcribe & Summarize Current File:** - Run this on an open audio file - it will Scribe this file.  Very useful for recording offline and later Scribing it
 - **Fix Mermaid Chart:** - Sometimes the generated Mermaid Chart is invalid, this will attempt to fix it.
 
@@ -107,9 +108,30 @@ Choose your preferred transcription service:
 
 ## 📖 How to Use
 
-1. **Start Recording:** Trigger the Scribe action or select it from the ribbon and begin recording 
+### Recording New Audio
+
+1. **Start Recording:** Trigger the Scribe action or select it from the ribbon and begin recording
 2. **Interactive Queries:** Pose questions during recording to have them answered and integrated into your notes just say "Hey Scribe" followed by the question.
 3. **Review and Explore:** Access the transcribed text, summary, insights, and Mermaid charts directly in your note.
+
+### Processing Existing Audio Files
+
+You can reprocess existing audio recordings using Scribe:
+
+1. Open Command Palette (Ctrl/Cmd+P)
+2. Type "Select and transcribe audio file"
+3. Select an audio file from the picker
+4. Wait for transcription and summarization to complete
+
+**Supported Audio Formats:**
+- WebM (.webm)
+- MP3 (.mp3)
+- WAV (.wav)
+- M4A (.m4a)
+- OGG (.ogg)
+- FLAC (.flac)
+
+**Note:** Files are processed using your configured transcription service (Whisper-ASR, OpenAI Whisper, or AssemblyAI) and LLM provider (OpenAI, Claude, or Ollama).
 
 ## 📱 Mobile
 
