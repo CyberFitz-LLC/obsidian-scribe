@@ -49,7 +49,7 @@ export function handleCommands(plugin: ScribePlugin) {
     id: 'scribe-select-audio-file',
     name: 'Select and transcribe audio file',
     callback: async () => {
-      const modal = new AudioFilePickerModal(plugin.app);
+      const modal = new AudioFilePickerModal(plugin.app, plugin);
       modal.open();
     },
   });
