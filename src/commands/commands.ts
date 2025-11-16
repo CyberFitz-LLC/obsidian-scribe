@@ -94,6 +94,17 @@ export function handleCommands(plugin: ScribePlugin) {
             activeNoteTemplate: scribeOptions.activeNoteTemplate,
           });
 
+          // Validate that we got a valid summary
+          if (!summary || typeof summary !== 'object') {
+            throw new Error('Summarization returned invalid result');
+          }
+
+          // Check if summary has actual content (not all empty/null values)
+          const hasContent = Object.values(summary).some(value => value && String(value).trim());
+          if (!hasContent) {
+            throw new Error('Summarization returned empty content');
+          }
+
           // Reconstruct note with new summary
           const updatedContent = reconstructNoteWithSummary(
             content,
