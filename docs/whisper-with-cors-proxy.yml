@@ -8,17 +8,20 @@ services:
 
     runtime: nvidia
 
+    # CRITICAL: Add shared memory for CUDA operations
+    shm_size: '1gb'
+
     # Don't expose port 9000 directly - only through Caddy
     expose:
       - "9000"
 
     environment:
       - ASR_ENGINE=faster_whisper
-      - ASR_MODEL=medium
+      - ASR_MODEL=small
       - ASR_DEVICE=cuda
-      - COMPUTE_TYPE=float16
-      - MODEL_IDLE_TIMEOUT=600
-      - LOG_LEVEL=DEBUG
+      - ASR_COMPUTE_TYPE=int8_float16  # Memory-efficient quantization
+      - ASR_BEAM_SIZE=3               # Reduced from 5 (minimal quality loss)
+      - ASR_BATCH_SIZE=8              # Faster processing
 
     volumes:
       - ./whisper-gpu-cache:/root/.cache

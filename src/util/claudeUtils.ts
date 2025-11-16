@@ -72,14 +72,14 @@ export async function summarizeTranscriptWithClaude(
       name: 'summarize_transcript',
     });
 
-    // Build messages array
-    const messages = [new SystemMessage(systemPrompt)];
+    // Build messages array - Claude only allows ONE system message
+    let combinedSystemPrompt = systemPrompt;
 
     if (scribeOutputLanguage) {
-      messages.push(
-        new SystemMessage(`Please respond in ${scribeOutputLanguage} language`),
-      );
+      combinedSystemPrompt += `\n\nIMPORTANT: Please respond in ${scribeOutputLanguage} language.`;
     }
+
+    const messages = [new SystemMessage(combinedSystemPrompt)];
 
     // Invoke and get structured result
     const result = (await structuredLlm.invoke(messages)) as Record<
