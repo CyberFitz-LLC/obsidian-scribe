@@ -4,6 +4,7 @@ import {
   DEFAULT_SETTINGS,
   handleSettingsTab,
   TRANSCRIPT_PLATFORM,
+  LLM_PROVIDER,
   type ScribePluginSettings,
 } from './settings/settings';
 import { handleRibbon } from './ribbon/ribbon';
@@ -90,7 +91,12 @@ export default class ScribePlugin extends Plugin {
 
     const defaultPathSettings = await getDefaultPathSettings(this);
 
-    if (!this.settings.openAiApiKey) {
+    // Only check for OpenAI API key if OpenAI is actually being used
+    const isUsingOpenAI =
+      this.settings.transcriptPlatform === TRANSCRIPT_PLATFORM.openAi ||
+      this.settings.llmProvider === LLM_PROVIDER.openai;
+
+    if (isUsingOpenAI && !this.settings.openAiApiKey) {
       console.error(
         'OpenAI API key is needed in Scribes settings - https://platform.openai.com/settings',
       );
