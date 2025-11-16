@@ -4,7 +4,7 @@
  */
 import { ChatAnthropic } from '@langchain/anthropic';
 import { z } from 'zod';
-import { SystemMessage } from '@langchain/core/messages';
+import { HumanMessage } from '@langchain/core/messages';
 import type { ScribeOptions } from 'src';
 import { convertToSafeJsonKey } from './textUtil';
 
@@ -72,14 +72,17 @@ export async function summarizeTranscriptWithClaude(
       name: 'summarize_transcript',
     });
 
-    // Build messages array - Claude only allows ONE system message
-    let combinedSystemPrompt = systemPrompt;
+    // Build user message with system prompt included
+    // Claude's API with withStructuredOutput requires a HumanMessage, not SystemMessage
+    let combinedPrompt = systemPrompt;
 
     if (scribeOutputLanguage) {
-      combinedSystemPrompt += `\n\nIMPORTANT: Please respond in ${scribeOutputLanguage} language.`;
+      combinedPrompt += `\n\nIMPORTANT: Please respond in ${scribeOutputLanguage} language.`;
     }
 
-    const messages = [new SystemMessage(combinedSystemPrompt)];
+    combinedPrompt += '\n\nPlease analyze the transcript and provide the structured summary.';
+
+    const messages = [new HumanMessage(combinedPrompt)];
 
     // Invoke and get structured result
     const result = (await structuredLlm.invoke(messages)) as Record<
